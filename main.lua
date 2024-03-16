@@ -3,6 +3,7 @@ io.stdout:setvbuf("no")
 
 
 function love.load()
+    level = 1
     --[[
    image = love.graphics.newImage("cake.jpg")
    love.graphics.setNewFont(12)
@@ -10,7 +11,16 @@ function love.load()
    love.graphics.setBackgroundColor(255,255,255)
    --]]
    --testVarNum = 0
+   wallBuffer = 5
+   maxVelocity = 300
 
+   --gravity stuff (https://2dengine.com/doc/platformers.html)
+
+   jumpHeight = 200
+   --generic number, needs deltaTime to work properly
+   timeToApex = 60
+
+ 
    player = {}
    player.xPos = 100
    player.deltaX = 0
@@ -20,7 +30,7 @@ function love.load()
    player.height = 50
    player.onGround = true
 
-   wallBuffer = 5
+
    print('hahaha')
 
    --going to depricate once testing is over
@@ -41,47 +51,19 @@ function love.load()
    wallObjects = {}
 end
 
-function makeWallRect(xPos, yPos, width, height)
+function makeWallRect(param)
     local rect = {}
-    rect.xPos = xPos or 0
-    rect.yPos = yPos or 0
-    rect.width = width or 200
-    rect.height = height or 100
+    rect.xPos = param.xPos or 0
+    rect.yPos = param.yPos or 0
+    rect.width = param.width or 200
+    rect.height = param.height or 100
+    rect.level = param.level or 1
     table.insert(wallObjects, rect)
+    --return rectangle instead of automatically inserting it into current level objects
+    --return rect
 end
 
-function setWallProp(properties)
-    local wall = {}
-    --set xPos or default to 0
-    if properties.xPos ~= nil then
-        wall.xPos = properties.xPos
-    else
-        wall.xPos = 0
-        print('no xPos set, default')
-    end
-    --set yPos or default to 0
-    if properties.yPos ~= nil then
-        wall.yPos = properties.yPos
-    else
-        wall.yPos = 0
-        print('no yPos set, default')
-    end
-    --set width or default to 200
-    if properties.width ~= nil then
-        wall.width = properties.width
-    else
-        wall.width = 200
-        print('no width set, default')
-    end
-    --set height or default to 300
-        if properties.height ~= nil then
-        wall.height = properties.height
-    else
-        wall.height = 300
-        print('no height set, default')
-    end
-    return wall
-end
+
 
 function doesCollideRect(object1, object2)
     local collides = 0
@@ -112,6 +94,8 @@ end
 
 
 function willCollide(object1, object2)
+
+
     local collides = {}
         --print('start of doesCollideRect: '.. testVarNum)
         --testVarNum = testVarNum + 1
@@ -169,6 +153,10 @@ end
 
 function love.update(dTime)
 
+    timeToApex = 6000*dTime
+    gravity = (2*jumpHeight)/timeToApex^2
+    initialJumpVelocity = -math.sqrt(2*gravity*jumpHeight)
+
     if player.deltaX ~= 0 then
         player.deltaX = player.deltaX*0.80
    end
@@ -189,7 +177,7 @@ function love.update(dTime)
 
 
     if player.deltaY ~= 0 then
-        player.deltaY = player.deltaY*0.80
+        player.deltaY = player.deltaY*0.970
    end
 
 
@@ -253,32 +241,14 @@ function love.update(dTime)
     end
 
     if love.keyboard.isDown('space') and player.onGround then
-        player.deltaY = player.deltaY - 1500*dTime
+        player.deltaY = 5*initialJumpVelocity
         player.onGround = false
     end
 -- bad version of movement without momentum, test collision only
 
---[[
-    local playerCollides = doesCollideRect(player, enemy)
-    if not playerCollides then
-        if love.keyboard.isDown('right') then
-            if player.xPos + player.width + player.speed * dTime < enemy.xPos  then
-                player.xPos = player.xPos + player.speed * dTime
-            end
-        end
-        if love.keyboard.isDown('left') then
-            player.xPos = player.xPos - player.speed * dTime
-        end
-        if love.keyboard.isDown('down') then
-            player.yPos = player.yPos + player.speed * dTime
-        end
-        if love.keyboard.isDown('up') then
-            player.yPos = player.yPos - player.speed * dTime
-        end
-    else
-        print('can\'t move')
+    if not willCollide(player, enemy).bottom then
+        player.onGround = false
     end
---]]
 
     if love.keyboard.isDown('d') then
         enemy.xPos = enemy.xPos + enemy.speed * dTime
@@ -295,6 +265,12 @@ function love.update(dTime)
 
 
 
+    if player.deltaY > maxVelocity then
+        player.deltaY = maxVelocity
+    end
+    if player.deltaX > maxVelocity then
+        player.deltaX = maxVelocity
+    end
 
 
     player.xPos = player.xPos + player.deltaX
@@ -305,6 +281,20 @@ function love.update(dTime)
      --   player.deltaY = 0
     --end
 
+    --make player loop around to top after hitting bottom
+    if player.yPos > 800 and player.deltaY > 0 then
+        player.yPos = -player.height
+    end
+    if player.xPos > 800 and player.deltaX > 0 then
+        player.xPos = -player.width
+    end
+
+    if player.yPos + player.height < 0 and player.deltaY < 0 then
+        player.yPos = 800
+    end
+    if player.xPos + player.width < 0 and player.deltaX < 0 then
+        player.xPos = 800
+    end
 end
 
 function love.draw()
