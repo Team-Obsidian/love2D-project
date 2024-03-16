@@ -20,7 +20,7 @@ function love.load()
    player.height = 50
    player.onGround = true
 
-   player.wallBuffer = 5
+   wallBuffer = 5
    print('hahaha')
 
    --going to depricate once testing is over
@@ -120,15 +120,15 @@ function willCollide(object1, object2)
     if (object1.yPos + object1.height) > object2.yPos and (object1.yPos < object2.yPos + object2.height) then
 
 
-        --if object1 left hits object2 right
-        if (object1.xPos + player.deltaX < object2.xPos + object2.width) then
+        --if object1 left passes object2 right and object1 right is still right of object2 right
+        if (object1.xPos + player.deltaX < object2.xPos + object2.width) and object1.xPos + object1.width > object2.xPos + object2.width - wallBuffer then
             collides.left = true
         else
             collides.left = false
         end
 
-        --if object1 right hits object2 left
-        if (object1.xPos + object1.width + player.deltaX) > object2.xPos then
+        --if object1 right passes object2 left and object1 left is still left of object2 right
+        if (object1.xPos + object1.width + player.deltaX) > object2.xPos and object1.xPos < object2.xPos + wallBuffer then
             collides.right = true
         else
             collides.right = false
@@ -143,14 +143,14 @@ function willCollide(object1, object2)
     if (object1.xPos + object1.width) > object2.xPos and (object1.xPos < object2.xPos + object2.width) then
        
         --if object1 top hits object2 bottom
-        if (object1.yPos + object1.deltaY) < object2.yPos + object2.height then
+        if (object1.yPos + object1.deltaY) < object2.yPos + object2.height and object1.yPos + object1.height > object2.yPos + object2.height - wallBuffer then
             collides.top = true
         else
             collides.top = false
         end
 
         --if object1 bottom hits object2 top
-        if (object1.yPos + object1.height + object1.deltaY > object2.yPos) then
+        if object1.yPos + object1.height + object1.deltaY > object2.yPos and object1.yPos < object2.yPos + wallBuffer  then
             collides.bottom = true
         else
             collides.bottom = false
@@ -176,7 +176,7 @@ function love.update(dTime)
 
 
     if player.onGround == false then
-        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + player.wallBuffer) then
+        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + wallBuffer) then
             player.deltaY = 0
             player.yPos = enemy.yPos - player.height
             player.onGround = true
@@ -208,7 +208,7 @@ function love.update(dTime)
         player.deltaX = player.deltaX + 50*dTime
     --else
     --    player.deltaX = player.deltaX - 10
-        if willCollide(player, enemy).right and player.xPos + player.width < (enemy.xPos + player.wallBuffer) then
+        if willCollide(player, enemy).right then
             player.deltaX = 0
             player.xPos = enemy.xPos - player.width
         end
@@ -219,7 +219,7 @@ function love.update(dTime)
    --     player.deltaX = player.deltaX - 10
 
         --if player is just right of the wall's right side and player is no more than 5 pixels into the object (which means boundary breaking can happen?) 
-        if willCollide(player, enemy).left and player.xPos > (enemy.xPos+enemy.width - player.wallBuffer) then
+        if willCollide(player, enemy).left then
             --player stops moving horizontally
             player.deltaX = 0
             --player snaps to wall
@@ -236,7 +236,7 @@ function love.update(dTime)
             player.deltaY = player.deltaY + 50*dTime
         end
 
-        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + player.wallBuffer) then
+        if willCollide(player, enemy).bottom then
             player.deltaY = 0
             player.yPos = enemy.yPos - player.height
         end
@@ -246,7 +246,7 @@ function love.update(dTime)
         player.deltaY = player.deltaY - 50*dTime
         end
 
-        if willCollide(player, enemy).top and player.yPos > (enemy.yPos + enemy.height - player.wallBuffer) then
+        if willCollide(player, enemy).top then
             player.deltaY = 0
             player.yPos = enemy.yPos + enemy.height
         end
