@@ -19,6 +19,8 @@ function love.load()
    player.width = 50
    player.height = 50
    player.onGround = true
+
+   player.wallBuffer = 5
    print('hahaha')
 
    --going to depricate once testing is over
@@ -172,16 +174,24 @@ function love.update(dTime)
    end
 
 
-   if player.onGround == false then
-        print("player not on ground")
-        player.deltaY = player.deltaY + 20*dTime
+
+    if player.onGround == false then
+        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + player.wallBuffer) then
+            player.deltaY = 0
+            player.yPos = enemy.yPos - player.height
+            player.onGround = true
+        else
+            player.deltaY = player.deltaY + 50*dTime
+        end
     end
+
 
 
 
     if player.deltaY ~= 0 then
         player.deltaY = player.deltaY*0.80
    end
+
 
 
 --[[
@@ -198,7 +208,7 @@ function love.update(dTime)
         player.deltaX = player.deltaX + 50*dTime
     --else
     --    player.deltaX = player.deltaX - 10
-        if willCollide(player, enemy).right and player.xPos + player.width < (enemy.xPos + 5) then
+        if willCollide(player, enemy).right and player.xPos + player.width < (enemy.xPos + player.wallBuffer) then
             player.deltaX = 0
             player.xPos = enemy.xPos - player.width
         end
@@ -209,7 +219,7 @@ function love.update(dTime)
    --     player.deltaX = player.deltaX - 10
 
         --if player is just right of the wall's right side and player is no more than 5 pixels into the object (which means boundary breaking can happen?) 
-        if willCollide(player, enemy).left and player.xPos > (enemy.xPos+enemy.width - 5) then
+        if willCollide(player, enemy).left and player.xPos > (enemy.xPos+enemy.width - player.wallBuffer) then
             --player stops moving horizontally
             player.deltaX = 0
             --player snaps to wall
@@ -226,7 +236,7 @@ function love.update(dTime)
             player.deltaY = player.deltaY + 50*dTime
         end
 
-        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + 5) then
+        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + player.wallBuffer) then
             player.deltaY = 0
             player.yPos = enemy.yPos - player.height
         end
@@ -236,14 +246,14 @@ function love.update(dTime)
         player.deltaY = player.deltaY - 50*dTime
         end
 
-        if willCollide(player, enemy).top and player.yPos > (enemy.yPos + enemy.height - 5) then
+        if willCollide(player, enemy).top and player.yPos > (enemy.yPos + enemy.height - player.wallBuffer) then
             player.deltaY = 0
             player.yPos = enemy.yPos + enemy.height
         end
     end
 
     if love.keyboard.isDown('space') and player.onGround then
-        player.deltaY = player.deltaY - 500*dTime
+        player.deltaY = player.deltaY - 1500*dTime
         player.onGround = false
     end
 -- bad version of movement without momentum, test collision only
