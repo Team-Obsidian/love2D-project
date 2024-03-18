@@ -3,6 +3,9 @@ io.stdout:setvbuf("no")
 
 
 function love.load()
+
+    canLand = false
+
     level = 1
     --[[
    image = love.graphics.newImage("cake.jpg")
@@ -11,12 +14,12 @@ function love.load()
    love.graphics.setBackgroundColor(255,255,255)
    --]]
    --testVarNum = 0
-   wallBuffer = 5
+   wallBuffer = 3
    maxVelocity = 300
 
    --gravity stuff (https://2dengine.com/doc/platformers.html)
 
-   jumpHeight = 200
+   jumpHeight = 150
    --generic number, needs deltaTime to work properly
    timeToApex = 60
 
@@ -36,7 +39,7 @@ function love.load()
    --going to depricate once testing is over
    player.speed = 100
 
-
+--[[ enemy is no longer needed
    enemy = {}
    enemy.xPos = 0
    enemy.deltaX = 0
@@ -46,7 +49,7 @@ function love.load()
    enemy.height = 50
    enemy.onGround = false
    enemy.speed = 100
-
+]]--
 
    wallObjects = {}
 end
@@ -58,7 +61,12 @@ function makeWallRect(param)
     rect.width = param.width or 200
     rect.height = param.height or 100
     rect.level = param.level or 1
-    table.insert(wallObjects, rect)
+    rect.returns = param.returns or false
+    if param.returns then
+        return rect
+    else
+        table.insert(wallObjects, rect)
+    end
     --return rectangle instead of automatically inserting it into current level objects
     --return rect
 end
@@ -127,6 +135,7 @@ function willCollide(object1, object2)
     if (object1.xPos + object1.width) > object2.xPos and (object1.xPos < object2.xPos + object2.width) then
        
         --if object1 top hits object2 bottom
+
         if (object1.yPos + object1.deltaY) < object2.yPos + object2.height and object1.yPos + object1.height > object2.yPos + object2.height - wallBuffer then
             collides.top = true
         else
@@ -153,34 +162,25 @@ end
 
 function love.update(dTime)
 
+--gravity is hard
+--[[
     timeToApex = 6000*dTime
     gravity = (2*jumpHeight)/timeToApex^2
     initialJumpVelocity = -math.sqrt(2*gravity*jumpHeight)
+--]]
 
     if player.deltaX ~= 0 then
         player.deltaX = player.deltaX*0.80
    end
 
-
-
-    if player.onGround == false then
-        if willCollide(player, enemy).bottom and player.yPos + player.height < (enemy.yPos + wallBuffer) then
-            player.deltaY = 0
-            player.yPos = enemy.yPos - player.height
-            player.onGround = true
-        else
-            player.deltaY = player.deltaY + 50*dTime
-        end
-    end
-
-
-
-
     if player.deltaY ~= 0 then
         player.deltaY = player.deltaY*0.970
    end
 
-
+       -- ~~~falling~~~
+    if player.onGround == false then
+            player.deltaY = player.deltaY + 20*dTime
+    end
 
 --[[
     if doesCollideRect(player, enemy) == true then
@@ -192,64 +192,83 @@ function love.update(dTime)
 
 
 --extra syntax after the willCollide stuff is because willCollide only checks for if it's past the edge, not whether it's still within the object
-    if love.keyboard.isDown('right') and math.abs(player.deltaX) < 150 then
-        player.deltaX = player.deltaX + 50*dTime
-    --else
-    --    player.deltaX = player.deltaX - 10
-        if willCollide(player, enemy).right then
+    
+    canLand = false
+    for key, value in pairs(wallObjects) do    
+        if willCollide(player, value).right then
             player.deltaX = 0
-            player.xPos = enemy.xPos - player.width
+            player.xPos = value.xPos - player.width
         end
-    end
-    if love.keyboard.isDown('left') and math.abs(player.deltaX) < 150 then
-        player.deltaX = player.deltaX - 50*dTime
-   --else
-   --     player.deltaX = player.deltaX - 10
 
-        --if player is just right of the wall's right side and player is no more than 5 pixels into the object (which means boundary breaking can happen?) 
-        if willCollide(player, enemy).left then
+        if willCollide(player, value).left then
             --player stops moving horizontally
             player.deltaX = 0
             --player snaps to wall
-            player.xPos = enemy.xPos + enemy.width
+            player.xPos = value.xPos + value.width
         end
+
+        if willCollide(player, value).bottom then
+            player.deltaY = 0
+            player.yPos = value.yPos - player.height
+            canLand = true
+
+        end
+        --print('player.onGround: '..tostring(canLand))
+        if willCollide(player, value).top then
+            player.deltaY = 0
+            player.yPos = value.yPos + value.height
+        end
+
+
+    end
+    if player.deltaY == 0 then
+        player.onGround = true
+    end
+    --player.onGround = canLand
+
+
+    if love.keyboard.isDown('right') and math.abs(player.deltaX) < 150 then
+    player.deltaX = player.deltaX + 50*dTime
+--else
+--    player.deltaX = player.deltaX - 10
+    end
+
+    if love.keyboard.isDown('left') and math.abs(player.deltaX) < 150 then
+        player.deltaX = player.deltaX - 50*dTime
+--else
+--     player.deltaX = player.deltaX - 10
+
+    --if player is just right of the wall's right side and player is no more than 5 pixels into the object (which means boundary breaking can happen?) 
     end
 
 
 
 
     --will reconfigure to jump thing later, acts like top-down for now
-    if love.keyboard.isDown('down') then
+    if love.keyboard.isDown('down') and not player.onGround then
         if math.abs(player.deltaY) < 100 then
             player.deltaY = player.deltaY + 50*dTime
         end
-
-        if willCollide(player, enemy).bottom then
-            player.deltaY = 0
-            player.yPos = enemy.yPos - player.height
-        end
     end
+
     if love.keyboard.isDown('up') then
         if math.abs(player.deltaY) < 100 then
-        player.deltaY = player.deltaY - 50*dTime
-        end
-
-        if willCollide(player, enemy).top then
-            player.deltaY = 0
-            player.yPos = enemy.yPos + enemy.height
+            player.deltaY = player.deltaY - 50*dTime
         end
     end
 
-    if love.keyboard.isDown('space') and player.onGround then
-        player.deltaY = 5*initialJumpVelocity
+    if love.keyboard.isDown('space') then
+        player.deltaY = -1000*dTime
         player.onGround = false
     end
 -- bad version of movement without momentum, test collision only
+    
 
-    if not willCollide(player, enemy).bottom then
-        player.onGround = false
-    end
 
+
+
+--enemy object no longer needed
+--[[
     if love.keyboard.isDown('d') then
         enemy.xPos = enemy.xPos + enemy.speed * dTime
     end
@@ -262,7 +281,7 @@ function love.update(dTime)
     if love.keyboard.isDown('w') then
         enemy.yPos = enemy.yPos - enemy.speed * dTime
     end
-
+--]]
 
 
     if player.deltaY > maxVelocity then
@@ -276,6 +295,7 @@ function love.update(dTime)
     player.xPos = player.xPos + player.deltaX
 
     --if player.onGround == false then
+    player.deltaY = math.floor(player.deltaY*10)/10
     player.yPos = player.yPos + player.deltaY
     --else
      --   player.deltaY = 0
@@ -295,6 +315,7 @@ function love.update(dTime)
     if player.xPos + player.width < 0 and player.deltaX < 0 then
         player.xPos = 800
     end
+
 end
 
 function love.draw()
@@ -311,7 +332,6 @@ function love.draw()
     love.graphics.rectangle("fill", player.xPos, player.yPos, player.width, player.height)
 
     love.graphics.setColor(0.1, 0, 0.8, 0.5)
-    love.graphics.rectangle("fill", enemy.xPos, enemy.yPos, enemy.width, enemy.height)
 end
 
 
@@ -321,7 +341,7 @@ function love.mousepressed(x, y, button, istouch)
       imgy = y
    end
    --]]
-    table.insert(wallObjects, setWallProp{xPos=x,yPos=y,width=130})
+    makeWallRect{xPos=x,yPos=y,width=130}
     print('x is ' .. x .. ', y is ' .. y)
 end
 
@@ -347,14 +367,8 @@ function love.keypressed(key)
         x = x + 5
     end--]]
 
-    if key=='t' then
-        print('left is: '..tostring(willCollide(player,enemy).left).. ' right is: '..tostring(willCollide(player, enemy).right))
-        --table.insert(wallObjects, setWallProp{xPos=400,yPos=0,width=130,height=100})
-    end
 
-    if key=='p' then
-        print('player.onGround is: '.. tostring(player.onGround))
-    end
+
 
 end
 
@@ -366,6 +380,9 @@ function love.keyreleased(key)
       a_down = true
    end
    --]]
+    if key == 't' then
+        print('player.onGround: '..tostring(canLand))
+    end
 end
 
 function love.focus(f)
