@@ -36,6 +36,9 @@ function love.load()
    player.height = 30
    player.onGround = true
    player.loop = false
+   --0 is do nothing, 1 is death/reset, 2 is loadlevel
+   player.boundary = {up=0,down=0,left=0,right=0}
+   player.respawn = {x=500,y=300}
    player.canDash = true
    player.isDashing = false
    player.direction = 'r'
@@ -62,38 +65,87 @@ function love.load()
 ]]--
 
    wallObjects = {}
+   collectObjects = {}
+   collectedObjects = {}
+   score = 0
 
-       function makeWallRect(param)
+    function makeWallRect(param)
         local rect = {}
         rect.xPos = param.xPos or 0
         rect.yPos = param.yPos or 0
         rect.width = param.width or 200
         rect.height = param.height or 100
         rect.level = param.level or 1
+        rect.visible = param.visible or true
         rect.returns = param.returns or false
         if param.returns then
             return rect
         else
             table.insert(wallObjects, rect)
         end
-        --return rectangle instead of automatically inserting it into current level objects
-        --return rect
     end
+
+    function makeCollectable(param)
+        local rect = {}
+        rect.width = param.width or 20
+        rect.height = param.height or 20
+        rect.xPos = param.xPos - rect.width / 2 or 400
+        rect.yPos = param.yPos - rect.height/ 2 or 300
+        rect.id = param.id or 0
+        for key, value in pairs(collectedObjects) do
+            print(value)
+            if value == rect.id then
+                print('collectable id: '.. rect.id .. ' has already been collected')
+                return
+            end    
+        end
+        rect.returns = param.returns or false
+        if param.returns then
+            return rect
+        else
+            table.insert(collectObjects, rect)
+        end
+    end
+
+    function wallBlock(param)
+        if param.up == true then
+            makeWallRect{xPos=0,yPos=-wallBuffer,width=screenWidth,height=wallBuffer,visible=false}
+        end
+        if param.down == true then
+            makeWallRect{xPos=0,yPos=screenHeight,width=screenWidth,height=wallBuffer,visible=false}
+        end
+        if param.left == true then
+            makeWallRect{xPos=-wallBuffer,yPos=0,width=wallBuffer,height=screenHeight,visible=false}
+        end
+        if param.right == true then
+            makeWallRect{xPos=screenWidth,yPos=0,width=wallBuffer,height=screenHeight,visible=false}
+        end
+    end
+
 
     function loadLevel(levelNum)
         print('level is now : '..level.x..','..level.y)
         wallObjects = {}
+        -- ~ Level Data ~
         if levelNum.y == 1 then
             if levelNum.x == 1 then
-                makeWallRect{xPos=-50,yPos=400,width=900,height=300}
+                wallBlock{up=true,left=true}
+                makeWallRect{xPos=-50,yPos=400,width=screenWidth + 100,height=300}
+                player.respawn = {x=screenWidth/2,y=400}
+                player.boundary = {up=0,down=1,left=1,right=2}
             elseif levelNum.x == 2 then
                 makeWallRect{xPos=-50,yPos=400,width=200,height=300}
                 makeWallRect{xPos=500,yPos=300,width=350,height= 100}
+                makeCollectable{xPos=500,yPos=200,id=2}
+                player.respawn = {x=50,y=375}
+                player.boundary = {up=0,down=1,left=2,right=2}
+            else
+                player.xPos = player.respawn.x
+                player.yPos = player.respawn.y
             end
         else
-            level.x = 1
-            level.y = 1
-            loadLevel(level)
+            player.xPos = player.respawn.x
+            player.yPos = player.respawn.y
         end
     end
 
@@ -200,7 +252,7 @@ function love.update(dTime)
 
     -- ~ dashing mechanics 1 (detection) ~
     if love.keyboard.isDown('x') and player.canDash and not player.isDashing then
-        print('player began dash')
+        --print('player began dash')
         if love.keyboard.isDown('up') and love.keyboard.isDown('left') then
             player.direction = 'ul'
 
@@ -228,7 +280,7 @@ function love.update(dTime)
             --player.direction = player.direction
             --need a way to keep track of direction you're facing?
         end
-        print('current player.direction: '.. player.direction)
+        --print('current player.direction: '.. player.direction)
         player.isDashing = true
         player.canDash = false
     end
@@ -356,11 +408,26 @@ function love.update(dTime)
 
         --extra syntax after the willCollide stuff is because willCollide only checks for if it's past the edge, not whether it's still within the object
     local canLand = false
-    -- ~ Collision Boundary Stop Checks ~
+    -- ~ Collision Boundary Stop Checks + Wall Jumping ~
     for key, value in pairs(wallObjects) do    
         if willCollide(player, value).right then
             player.deltaX = 0
             player.xPos = value.xPos - player.width
+
+            if player.deltaY > 0 then
+                if player.deltaY > 7 then
+                    player.deltaY = player.deltaY - math.floor(500*dTime)/10
+                elseif player.deltaY > 3 then
+                    player.deltaY = player.deltaY - math.floor(300*dTime)/10
+                else
+                    player.deltaY = player.deltaY - math.floor(150*dTime)/10
+                end
+                if love.keyboard.isDown('z') and value.visible then
+                    player.deltaY = -jumpHeight*dTime/1.2
+                    player.deltaX = -jumpHeight*dTime*1.5
+                    --player.onGround = false
+                end                    
+            end
         end
 
         if willCollide(player, value).left then
@@ -377,7 +444,7 @@ function love.update(dTime)
                 else
                     player.deltaY = player.deltaY - math.floor(150*dTime)/10
                 end
-                if love.keyboard.isDown('z') then
+                if love.keyboard.isDown('z') and value.visible then
                     player.deltaY = -jumpHeight*dTime/1.2
                     player.deltaX = jumpHeight*dTime*1.5
                     --player.onGround = false
@@ -397,6 +464,17 @@ function love.update(dTime)
         end
 
 
+
+
+    end
+
+    for key, value in pairs(collectObjects) do    
+        if doesCollideRect(player, value) then
+            score = score + 1
+            table.insert(collectedObjects, value.id, value.id)
+            table.remove(collectObjects, key)
+        end
+
     end
 
     if canLand then
@@ -411,33 +489,67 @@ function love.update(dTime)
 
     -- ~ level swap / screen wrap ~
     if player.yPos > screenHeight and player.deltaY > 0 then
-        if not player.loop then    
+        if player.boundary.down == 0 then
+
+        elseif player.boundary.down == 1 then
+            --insert player death here, make death function and some graphical effects
+            player.xPos = player.respawn.x
+            player.yPos = player.respawn.y
+        elseif player.boundary.down == 2 then    
             level.y = level.y - 1
             loadLevel(level)
+            player.yPos = -player.height
         end
-        player.yPos = -player.height
+
     end
     if player.xPos > screenWidth and player.deltaX > 0 then
-        player.xPos = -player.width
-        level.x = level.x + 1
-        loadLevel(level)
+        if player.boundary.right == 0 then
+
+        elseif player.boundary.right == 1 then
+            --insert player death here, make death function and some graphical effects
+            player.xPos = player.respawn.x
+            player.yPos = player.respawn.y
+        elseif player.boundary.right == 2 then    
+            level.x = level.x + 1
+            loadLevel(level)
+            player.xPos = -player.width
+        end
+
     end
 
     if player.yPos + player.height < 0 and player.deltaY < 0 then
-        if not player.loop then
+        if player.boundary.up == 0 then
+
+        elseif player.boundary.up == 1 then
+            --insert player death here, make death function and some graphical effects
+            player.xPos = player.respawn.x
+            player.yPos = player.respawn.y
+        elseif player.boundary.up == 2 then    
             level.y = level.y + 1
             loadLevel(level)
-        end
         player.yPos = screenHeight
+        end
+
     end
     if player.xPos + player.width < 0 and player.deltaX < 0 then
-        player.xPos = screenWidth
-        level.x = level.x - 1
-        loadLevel(level)
+        if player.boundary.left == 0 then
+
+        elseif player.boundary.left == 1 then
+            --insert player death here, make death function and some graphical effects
+            player.xPos = player.respawn.x
+            player.yPos = player.respawn.y
+        elseif player.boundary.left == 2 then    
+            level.x = level.x - 1
+            loadLevel(level)
+            player.xPos = screenWidth
+        end
+
+
+
     end
 
     -- ~ Debug Print Statements ~
-    print('player.deltaY: ' .. player.deltaY)
+    --print('player.deltaY: ' .. player.deltaY)
 end
 
 function love.draw()
@@ -450,22 +562,33 @@ function love.draw()
     for i,v in ipairs(wallObjects) do
 
         --love.graphics.drawinrect('floor-tile.png', v.xPos, v.yPos, v.width, v.height)--, r, ox, oy, kx, ky)
-        love.graphics.setColor(0.1, 0, 0.8, 0.5)
-        love.graphics.rectangle('fill',v.xPos,v.yPos,v.width,v.height)
-        love.graphics.setColor(1, 1, 1, 0.8)
-        love.graphics.rectangle('line',v.xPos,v.yPos,v.width,v.height)
+        if v.visible then
+            love.graphics.setColor(0.1, 0, 0.8, 0.5)
+            love.graphics.rectangle('fill',v.xPos,v.yPos,v.width,v.height)
+            love.graphics.setColor(1, 1, 1, 0.8)
+            love.graphics.rectangle('line',v.xPos+1,v.yPos+1,v.width-1,v.height-1)
+        end
 
         --love.graphics.draw(tile, v.xPos, v.yPos)
 
     end
 
+    for i,v in ipairs(collectObjects) do
+        love.graphics.setColor(0.3, 1, 0.3, 0.5)
+        love.graphics.rectangle('fill',v.xPos,v.yPos,v.width,v.height)
+    end
+
     if player.canDash then
         love.graphics.setColor(0.8, 0.1, 0, 1.0)
     else
-        love.graphics.setColor(0.4, 0.1, 0.3, 0.8)
+        --love.graphics.setColor(0, 0, 0.1, 1.0)
+        --love.graphics.rectangle("fill", player.xPos-2, player.yPos-2, player.width+4, player.height+4)
+        love.graphics.setColor(0.1, 0.4, 0.9, 1.0)
     end
     love.graphics.rectangle("fill", player.xPos, player.yPos, player.width, player.height)
-
+    
+    love.graphics.setColor(0.9, 0.7, 0.9, 0.9)
+    love.graphics.print('Score is: '.. tostring(score), 800, 100)
 
 end
 
