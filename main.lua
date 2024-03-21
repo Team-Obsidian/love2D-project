@@ -122,23 +122,46 @@ function love.load()
         end
     end
 
-
+    --Need to make a text object to be rendered
+    --level = {x=2,y=1}
     function loadLevel(levelNum)
         print('level is now : '..level.x..','..level.y)
         wallObjects = {}
+        collectObjects = {}
         -- ~ Level Data ~
         if levelNum.y == 1 then
             if levelNum.x == 1 then
                 wallBlock{up=true,left=true}
                 makeWallRect{xPos=-50,yPos=400,width=screenWidth + 100,height=300}
+                makeCollectable{xPos=screenWidth/2,yPos=screenHeight/2,id=1}
                 player.respawn = {x=screenWidth/2,y=400}
                 player.boundary = {up=0,down=1,left=1,right=2}
             elseif levelNum.x == 2 then
+                love.graphics.print('Hold against the wall to wall jump after pressing Z', 500, 100)
+                makeWallRect{xPos=-50,yPos=400,width=50,height=300}
+                makeWallRect{xPos=0,yPos=500, width = screenWidth/2,height = 200}
+                makeWallRect{xPos=screenWidth*2/3,yPos=200, width = screenWidth/3,height = 400}
+                makeCollectable{xPos=screenWidth*2/3-20,yPos=screenHeight-25,id=2}
+                player.boundary = {up=0,down=1,left=2,right=2}
+                player.respawn = {x=100,y=450}
+            elseif levelNum.x == 3 then
+                makeWallRect{xPos=0,yPos=200,height=500,width=100}
+                makeWallRect{xPos=250,yPos=0,height=300,width=100}
+                makeWallRect{xPos=500,yPos=300,height=500,width=100}
+                makeWallRect{xPos=600,yPos=500,height=100,width=500}
+                makeCollectable{xPos=325,yPos=315,id=3}
+                player.boundary = {up=0,down=1,left=2,right=2}
+                player.respawn = {x=50,y=150}
+            elseif levelNum.x == 4 then
+            elseif levelNum.x == 5 then
                 makeWallRect{xPos=-50,yPos=400,width=200,height=300}
                 makeWallRect{xPos=500,yPos=300,width=350,height= 100}
                 makeCollectable{xPos=500,yPos=200,id=2}
                 player.respawn = {x=50,y=375}
                 player.boundary = {up=0,down=1,left=2,right=2}
+            elseif levelNum.x == 6 then
+            elseif levelNum.x == 7 then
+            elseif levelNum.x == 8 then
             else
                 player.xPos = player.respawn.x
                 player.yPos = player.respawn.y
@@ -587,8 +610,11 @@ function love.draw()
     end
     love.graphics.rectangle("fill", player.xPos, player.yPos, player.width, player.height)
     
+    --love.graphics.setColor(1, 1, 1, 1.0)
+
+
     love.graphics.setColor(0.9, 0.7, 0.9, 0.9)
-    love.graphics.print('Score is: '.. tostring(score), 800, 100)
+    love.graphics.print('Trash Collected: '.. tostring(score), 800, 100)
 
 end
 
