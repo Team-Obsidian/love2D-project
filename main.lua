@@ -137,7 +137,7 @@ function love.load()
                 player.respawn = {x=screenWidth/2,y=400}
                 player.boundary = {up=0,down=1,left=1,right=2}
             elseif levelNum.x == 2 then
-                love.graphics.print('Hold against the wall to wall jump after pressing Z', 500, 100)
+                --love.graphics.print('Hold against the wall to wall jump after pressing Z', 500, 100)
                 makeWallRect{xPos=-50,yPos=400,width=50,height=300}
                 makeWallRect{xPos=0,yPos=500, width = screenWidth/2,height = 200}
                 makeWallRect{xPos=screenWidth*2/3,yPos=200, width = screenWidth/3,height = 400}
@@ -581,6 +581,9 @@ function love.draw()
    love.graphics.print("Click and drag the cake around or use the arrow keys", 10, 10)
    --]]
    --makeWallRect(0,400,400,200)
+   love.graphics.setColor(0.2, 0.1, 0.2, 1)
+   love.graphics.rectangle('fill', 0, 0, screenWidth, screenHeight)
+
 
     for i,v in ipairs(wallObjects) do
 
@@ -666,9 +669,6 @@ function love.keyreleased(key)
       a_down = true
    end
    --]]
-    if key == 't' then
-        print('player.onGround: '..tostring(player.onGround))
-    end
 end
 
 function love.focus(f)
