@@ -3,47 +3,68 @@ io.stdout:setvbuf("no")
 
 
 function love.load()
-    screenWidth = 1024
-    screenHeight = 576
+    everythingScale = 2
+    tileSize = 25
+    screenWidth = tileSize*everythingScale*16
+    screenHeight = tileSize*everythingScale*9
     love.window.setMode(screenWidth, screenHeight)
     tile = love.graphics.newImage('floor-tile.png')
+
     --love.window.setMode(800, 600, {resizable=false, vsync=0})
 
     level = {x=1,y=1}
     --[[
-   image = love.graphics.newImage("cake.jpg")
-   love.graphics.setNewFont(12)
-   love.graphics.setColor(0,0,0)
-   love.graphics.setBackgroundColor(255,255,255)
-   --]]
-   --testVarNum = 0
-   wallBuffer = 2
-   maxVelocity = 300
+    image = love.graphics.newImage("cake.jpg")
+    love.graphics.setNewFont(12)
+    love.graphics.setColor(0,0,0)
+    love.graphics.setBackgroundColor(255,255,255)
+    --]]
+    --testVarNum = 0
+    wallBuffer = 2
+    maxVelocity = 300
 
-   --gravity stuff (https://2dengine.com/doc/platformers.html)
+    --gravity stuff (https://2dengine.com/doc/platformers.html)
 
-   jumpHeight = 600
-   --generic number, needs deltaTime to work properly
-   timeToApex = 60
+    jumpHeight = 600
+    --generic number, needs deltaTime to work properly
+    timeToApex = 60
 
- 
-   player = {}
-   player.xPos = 100
-   player.deltaX = 0
-   player.yPos = 100
-   player.deltaY = 0
-   player.width = 25
-   player.height = 30
-   player.onGround = true
-   player.loop = false
-   --0 is do nothing, 1 is death/reset, 2 is loadlevel
-   player.boundary = {up=0,down=0,left=0,right=0}
-   player.respawn = {x=500,y=300}
-   player.canDash = true
-   player.isDashing = false
-   player.direction = 'r'
-   player.dashSpeed = 600
-   player.dashTime = {current=800,max=800}
+    debug = 1
+    maker = {}
+
+    if debug == 1 then
+        maker.cursor1 = {x=15,y=10}
+        maker.cursor2 = {x=15,y=10}
+        maker.pointer = {x=20,y=5,drag=false}
+        maker.current = {}
+        maker.export = {}
+    end
+
+
+    player = {}
+
+    if debug == 0 then
+        player.xPos = -1000
+        player.yPos = -1000
+    else
+        player.xPos = 100
+        player.yPos = 100
+    end
+
+    player.deltaX = 0
+    player.deltaY = 0
+    player.width = tileSize
+    player.height = tileSize
+    player.onGround = true
+    player.loop = false
+    --0 is do nothing, 1 is death/reset, 2 is loadlevel
+    player.boundary = {up=0,down=0,left=0,right=0}
+    player.respawn = {x=500,y=300}
+    player.canDash = true
+    player.isDashing = false
+    player.direction = 'r'
+    player.dashSpeed = 600
+    player.dashTime = {current=800,max=800}
 
 
 
@@ -87,10 +108,10 @@ function love.load()
 
     function makeCollectable(param)
         local rect = {}
-        rect.width = param.width or 20
-        rect.height = param.height or 20
-        rect.xPos = param.xPos - rect.width / 2 or 400
-        rect.yPos = param.yPos - rect.height/ 2 or 300
+        rect.width = param.width or tileSize
+        rect.height = param.height or tileSize
+        rect.xPos = param.xPos or 400
+        rect.yPos = param.yPos or 300
         rect.id = param.id or 0
         for key, value in pairs(collectedObjects) do
             print(value)
@@ -206,9 +227,11 @@ function love.load()
         local collides = {}
             --print('start of doesCollideRect: '.. testVarNum)
             --testVarNum = testVarNum + 1
+            bottom1 = object1.yPos+object1.height
+            bottom2 =object2.yPos+object2.height
 
         --check if object1 is at a vertical position to hit horizontally
-        if (object1.yPos + object1.height) > object2.yPos and (object1.yPos < object2.yPos + object2.height) then
+        if (bottom1) > object2.yPos and (object1.yPos < bottom2) then
 
 
             --if object1 left passes object2 right and object1 right is still right of object2 right
@@ -257,7 +280,9 @@ function love.load()
         return collides
     end
 
-    loadLevel(level)
+    if debug == 0 then
+        loadLevel(level)
+    end
 end
 
 
@@ -266,313 +291,339 @@ end
 
 function love.update(dTime)
 
---gravity is hard
---[[
-    timeToApex = 6000*dTime
-    gravity = (2*jumpHeight)/timeToApex^2
-    initialJumpVelocity = -math.sqrt(2*gravity*jumpHeight)
---]]
 
-    -- ~ dashing mechanics 1 (detection) ~
-    if love.keyboard.isDown('x') and player.canDash and not player.isDashing then
-        --print('player began dash')
-        if love.keyboard.isDown('up') and love.keyboard.isDown('left') then
-            player.direction = 'ul'
+    if debug == 0 then
+        -- ~ dashing mechanics 1 (detection) ~
+        if love.keyboard.isDown('x') and player.canDash and not player.isDashing then
+            --print('player began dash')
+            if love.keyboard.isDown('up') and love.keyboard.isDown('left') then
+                player.direction = 'ul'
 
-        elseif love.keyboard.isDown('up') and love.keyboard.isDown('right') then
-            player.direction = 'ur'
+            elseif love.keyboard.isDown('up') and love.keyboard.isDown('right') then
+                player.direction = 'ur'
 
-        elseif love.keyboard.isDown('down') and love.keyboard.isDown('left') then
-            player.direction = 'dl'
+            elseif love.keyboard.isDown('down') and love.keyboard.isDown('left') then
+                player.direction = 'dl'
 
-        elseif love.keyboard.isDown('down') and love.keyboard.isDown('right') then
-            player.direction = 'dr'
+            elseif love.keyboard.isDown('down') and love.keyboard.isDown('right') then
+                player.direction = 'dr'
 
-        elseif love.keyboard.isDown('up') then
-            player.direction = 'u'
+            elseif love.keyboard.isDown('up') then
+                player.direction = 'u'
 
-        elseif love.keyboard.isDown('down') then
-            player.direction = 'd'
+            elseif love.keyboard.isDown('down') then
+                player.direction = 'd'
 
-        elseif love.keyboard.isDown('left') then
-            player.direction = 'l'
+            elseif love.keyboard.isDown('left') then
+                player.direction = 'l'
 
-        elseif love.keyboard.isDown('right') then
-            player.direction = 'r'
+            elseif love.keyboard.isDown('right') then
+                player.direction = 'r'
+            else
+                --player.direction = player.direction
+                --need a way to keep track of direction you're facing?
+            end
+            --print('current player.direction: '.. player.direction)
+            player.isDashing = true
+            player.canDash = false
+        end
+
+        -- ~ dashing mechanics 2 (movement/direction) ~
+        if player.isDashing then 
+            if player.direction == 'ul' then
+                player.deltaX = -player.dashSpeed / math.sqrt(2) * dTime
+                player.deltaY = -player.dashSpeed / math.sqrt(2) * dTime
+            elseif player.direction == 'ur' then
+                player.deltaX = player.dashSpeed / math.sqrt(2) *dTime
+                player.deltaY = -player.dashSpeed / math.sqrt(2) *dTime
+            elseif player.direction == 'dl' then
+                player.deltaX = -player.dashSpeed / math.sqrt(2) * dTime
+                player.deltaY = player.dashSpeed / math.sqrt(2) * dTime
+            elseif player.direction == 'dr' then
+                player.deltaX = player.dashSpeed / math.sqrt(2) * dTime
+                player.deltaY = player.dashSpeed / math.sqrt(2) * dTime
+            elseif player.direction == 'u' then
+                player.deltaY = -player.dashSpeed *dTime
+                player.deltaX = 0
+            elseif player.direction == 'd' then
+                player.deltaY = player.dashSpeed *dTime
+                player.deltaX = 0
+            elseif player.direction == 'l' then
+                player.deltaX = -player.dashSpeed *dTime
+                player.deltaY = 0
+            elseif player.direction == 'r' then
+                player.deltaX = player.dashSpeed *dTime
+                player.deltaY = 0
+            else
+                print('nonsense player direction, '.. player.direction)
+            end
+            player.canDash = false
+            player.dashTime.current = player.dashTime.current - 5000*dTime
+            if player.dashTime.current < 0 then
+                player.dashTime.current = player.dashTime.max
+                player.isDashing = false
+            end
+            --print('player is still dashing')
         else
-            --player.direction = player.direction
-            --need a way to keep track of direction you're facing?
-        end
-        --print('current player.direction: '.. player.direction)
-        player.isDashing = true
-        player.canDash = false
-    end
 
-    -- ~ dashing mechanics 2 (movement/direction) ~
-    if player.isDashing then 
-        if player.direction == 'ul' then
-            player.deltaX = -player.dashSpeed / math.sqrt(2) * dTime
-            player.deltaY = -player.dashSpeed / math.sqrt(2) * dTime
-        elseif player.direction == 'ur' then
-            player.deltaX = player.dashSpeed / math.sqrt(2) *dTime
-            player.deltaY = -player.dashSpeed / math.sqrt(2) *dTime
-        elseif player.direction == 'dl' then
-            player.deltaX = -player.dashSpeed / math.sqrt(2) * dTime
-            player.deltaY = player.dashSpeed / math.sqrt(2) * dTime
-        elseif player.direction == 'dr' then
-            player.deltaX = player.dashSpeed / math.sqrt(2) * dTime
-            player.deltaY = player.dashSpeed / math.sqrt(2) * dTime
-        elseif player.direction == 'u' then
-            player.deltaY = -player.dashSpeed *dTime
-            player.deltaX = 0
-        elseif player.direction == 'd' then
-            player.deltaY = player.dashSpeed *dTime
-            player.deltaX = 0
-        elseif player.direction == 'l' then
-            player.deltaX = -player.dashSpeed *dTime
-            player.deltaY = 0
-        elseif player.direction == 'r' then
-            player.deltaX = player.dashSpeed *dTime
-            player.deltaY = 0
-        else
-            print('nonsense player direction, '.. player.direction)
-        end
-        player.canDash = false
-        player.dashTime.current = player.dashTime.current - 5000*dTime
-        if player.dashTime.current < 0 then
-            player.dashTime.current = player.dashTime.max
-            player.isDashing = false
-        end
-        --print('player is still dashing')
-    else
+            --movement friction for controlled movement
+            if player.deltaX ~= 0 then
+                player.deltaX = player.deltaX*0.80
+            end
 
-        --movement friction for controlled movement
-        if player.deltaX ~= 0 then
-            player.deltaX = player.deltaX*0.80
+            if player.deltaY ~= 0 then
+                player.deltaY = player.deltaY*0.970
+            end
+
+               -- ~~~falling~~~
+            if player.onGround == false then
+                    player.deltaY = player.deltaY + 20*dTime
+            else
+                player.canDash = true
+            end
+
+        --[[
+            if doesCollideRect(player, enemy) == true then
+                --print("player is on ground")
+                player.onGround = true
+            else
+            end
+        --]]
+
+
+
+
+            --move right
+            if love.keyboard.isDown('right') and math.abs(player.deltaX) < 150 then
+                player.deltaX = player.deltaX + 50*dTime
+                player.direction = 'r'
+            end
+
+            --move left
+            if love.keyboard.isDown('left') and math.abs(player.deltaX) < 150 then
+                player.deltaX = player.deltaX - 50*dTime
+                player.direction = 'l'
+            end
+
+            --jump
+            if love.keyboard.isDown('z') and player.onGround then
+                player.deltaY = -jumpHeight*dTime
+                player.onGround = false
+            end
+
+
+
+
+            --will reconfigure to jump thing later, acts like top-down for now
+
+
+
+        --[[ unneeded because gravity
+            
+            if love.keyboard.isDown('down') and player.deltaY == 0 and not player.onGround then
+                if math.abs(player.deltaY) < 100 then
+                    player.deltaY = player.deltaY + 50*dTime
+                end
+            end
+
+            if love.keyboard.isDown('up') then
+                if math.abs(player.deltaY) < 100 then
+                    player.deltaY = player.deltaY - 50*dTime
+                end
+            end
+        --]]
+
+
+
+
+
+
+
+            if player.deltaY > maxVelocity then
+                player.deltaY = maxVelocity
+            end
+            if player.deltaX > maxVelocity then
+                player.deltaX = maxVelocity
+            end
+
+            player.deltaY = math.floor(player.deltaY*10)/10
         end
 
-        if player.deltaY ~= 0 then
-            player.deltaY = player.deltaY*0.970
+        --extra syntax after the willCollide stuff is because willCollide only checks for if it's past the edge, not whether it's still within the object
+        local canLand = false
+        -- ~ Collision Boundary Stop Checks + Wall Jumping ~
+        for key, value in pairs(wallObjects) do    
+            if willCollide(player, value).right then
+                player.deltaX = 0
+                player.xPos = value.xPos - player.width
+
+                if player.deltaY > 0 then
+                    if player.deltaY > 7 then
+                        player.deltaY = player.deltaY - math.floor(500*dTime)/10
+                    elseif player.deltaY > 3 then
+                        player.deltaY = player.deltaY - math.floor(300*dTime)/10
+                    else
+                        player.deltaY = player.deltaY - math.floor(150*dTime)/10
+                    end
+                    if love.keyboard.isDown('z') and value.visible then
+                        player.deltaY = -jumpHeight*dTime/1.2
+                        player.deltaX = -jumpHeight*dTime*1.5
+                        --player.onGround = false
+                    end                    
+                end
+            end
+
+            if willCollide(player, value).left then
+                --player stops moving horizontally
+                player.deltaX = 0
+                --player snaps to wall
+                player.xPos = value.xPos + value.width
+
+                if player.deltaY > 0 then
+                    if player.deltaY > 7 then
+                        player.deltaY = player.deltaY - math.floor(500*dTime)/10
+                    elseif player.deltaY > 3 then
+                        player.deltaY = player.deltaY - math.floor(300*dTime)/10
+                    else
+                        player.deltaY = player.deltaY - math.floor(150*dTime)/10
+                    end
+                    if love.keyboard.isDown('z') and value.visible then
+                        player.deltaY = -jumpHeight*dTime/1.2
+                        player.deltaX = jumpHeight*dTime*1.5
+                        --player.onGround = false
+                    end                    
+                end
+            end
+
+            if willCollide(player, value).bottom then
+                player.deltaY = 0
+                player.yPos = value.yPos - player.height
+                canLand = true
+            end
+
+            if willCollide(player, value).top then
+                player.deltaY = 0
+                player.yPos = value.yPos + value.height
+            end
         end
 
-           -- ~~~falling~~~
-        if player.onGround == false then
-                player.deltaY = player.deltaY + 20*dTime
-        else
-            player.canDash = true
+        for key, value in pairs(collectObjects) do    
+            if doesCollideRect(player, value) then
+                score = score + 1
+                table.insert(collectedObjects, value.id, value.id)
+                table.remove(collectObjects, key)
+            end
         end
 
-    --[[
-        if doesCollideRect(player, enemy) == true then
-            --print("player is on ground")
+        if canLand then
             player.onGround = true
         else
-        end
-    --]]
-
-
-
-
-        --move right
-        if love.keyboard.isDown('right') and math.abs(player.deltaX) < 150 then
-            player.deltaX = player.deltaX + 50*dTime
-            player.direction = 'r'
-        end
-
-        --move left
-        if love.keyboard.isDown('left') and math.abs(player.deltaX) < 150 then
-            player.deltaX = player.deltaX - 50*dTime
-            player.direction = 'l'
-        end
-
-        --jump
-        if love.keyboard.isDown('z') and player.onGround then
-            player.deltaY = -jumpHeight*dTime
             player.onGround = false
         end
 
+        player.xPos = player.xPos + player.deltaX
+        player.yPos = player.yPos + player.deltaY
 
 
+        -- ~ level swap / screen wrap ~
+        if player.yPos > screenHeight and player.deltaY > 0 then
+            if player.boundary.down == 0 then
 
-        --will reconfigure to jump thing later, acts like top-down for now
-
-
-
-    --[[ unneeded because gravity
-        
-        if love.keyboard.isDown('down') and player.deltaY == 0 and not player.onGround then
-            if math.abs(player.deltaY) < 100 then
-                player.deltaY = player.deltaY + 50*dTime
+            elseif player.boundary.down == 1 then
+                --insert player death here, make death function and some graphical effects
+                player.xPos = player.respawn.x
+                player.yPos = player.respawn.y
+            elseif player.boundary.down == 2 then    
+                level.y = level.y - 1
+                loadLevel(level)
+                player.yPos = -player.height
             end
-        end
 
-        if love.keyboard.isDown('up') then
-            if math.abs(player.deltaY) < 100 then
-                player.deltaY = player.deltaY - 50*dTime
+        end
+        if player.xPos > screenWidth and player.deltaX > 0 then
+            if player.boundary.right == 0 then
+
+            elseif player.boundary.right == 1 then
+                --insert player death here, make death function and some graphical effects
+                player.xPos = player.respawn.x
+                player.yPos = player.respawn.y
+            elseif player.boundary.right == 2 then    
+                level.x = level.x + 1
+                loadLevel(level)
+                player.xPos = -player.width
             end
-        end
-    --]]
 
-
-
-
-
-
-
-        if player.deltaY > maxVelocity then
-            player.deltaY = maxVelocity
-        end
-        if player.deltaX > maxVelocity then
-            player.deltaX = maxVelocity
         end
 
-        player.deltaY = math.floor(player.deltaY*10)/10
-    end
+        if player.yPos + player.height < 0 and player.deltaY < 0 then
+            if player.boundary.up == 0 then
 
-        --extra syntax after the willCollide stuff is because willCollide only checks for if it's past the edge, not whether it's still within the object
-    local canLand = false
-    -- ~ Collision Boundary Stop Checks + Wall Jumping ~
-    for key, value in pairs(wallObjects) do    
-        if willCollide(player, value).right then
-            player.deltaX = 0
-            player.xPos = value.xPos - player.width
-
-            if player.deltaY > 0 then
-                if player.deltaY > 7 then
-                    player.deltaY = player.deltaY - math.floor(500*dTime)/10
-                elseif player.deltaY > 3 then
-                    player.deltaY = player.deltaY - math.floor(300*dTime)/10
-                else
-                    player.deltaY = player.deltaY - math.floor(150*dTime)/10
-                end
-                if love.keyboard.isDown('z') and value.visible then
-                    player.deltaY = -jumpHeight*dTime/1.2
-                    player.deltaX = -jumpHeight*dTime*1.5
-                    --player.onGround = false
-                end                    
+            elseif player.boundary.up == 1 then
+                --insert player death here, make death function and some graphical effects
+                player.xPos = player.respawn.x
+                player.yPos = player.respawn.y
+            elseif player.boundary.up == 2 then    
+                level.y = level.y + 1
+                loadLevel(level)
+            player.yPos = screenHeight
             end
+
         end
+        if player.xPos + player.width < 0 and player.deltaX < 0 then
+            if player.boundary.left == 0 then
 
-        if willCollide(player, value).left then
-            --player stops moving horizontally
-            player.deltaX = 0
-            --player snaps to wall
-            player.xPos = value.xPos + value.width
-
-            if player.deltaY > 0 then
-                if player.deltaY > 7 then
-                    player.deltaY = player.deltaY - math.floor(500*dTime)/10
-                elseif player.deltaY > 3 then
-                    player.deltaY = player.deltaY - math.floor(300*dTime)/10
-                else
-                    player.deltaY = player.deltaY - math.floor(150*dTime)/10
-                end
-                if love.keyboard.isDown('z') and value.visible then
-                    player.deltaY = -jumpHeight*dTime/1.2
-                    player.deltaX = jumpHeight*dTime*1.5
-                    --player.onGround = false
-                end                    
+            elseif player.boundary.left == 1 then
+                --insert player death here, make death function and some graphical effects
+                player.xPos = player.respawn.x
+                player.yPos = player.respawn.y
+            elseif player.boundary.left == 2 then    
+                level.x = level.x - 1
+                loadLevel(level)
+                player.xPos = screenWidth
             end
+
+
+
         end
 
-        if willCollide(player, value).bottom then
-            player.deltaY = 0
-            player.yPos = value.yPos - player.height
-            canLand = true
+        -- ~ Debug Print Statements ~
+        --print('player.deltaY: ' .. player.deltaY)
+    elseif debug == 1 then
+        x, y = love.mouse.getPosition( )
+        maker.pointer.x = (x - (x % tileSize)) / tileSize
+        maker.pointer.y = (y - (y % tileSize)) / tileSize
+
+        if maker.pointer.drag then
+            maker.cursor2.x = maker.pointer.x
+            maker.cursor2.y = maker.pointer.y
         end
 
-        if willCollide(player, value).top then
-            player.deltaY = 0
-            player.yPos = value.yPos + value.height
+        --find lower X
+        if maker.cursor1.x <= maker.cursor2.x then
+            maker.current.x = maker.cursor1.x * tileSize
+        else
+            maker.current.x = maker.cursor2.x * tileSize
         end
 
+        --find lower Y
+        if maker.cursor1.y <= maker.cursor2.y then
+            maker.current.y = maker.cursor1.y * tileSize
+        else
+            maker.current.y = maker.cursor2.y * tileSize
+        end
 
+        --find width and height, add 1 so it goes around cursor 2 before scaling
+        maker.current.w = (math.abs(maker.cursor1.x-maker.cursor2.x) + 1) * tileSize
+        maker.current.h = (math.abs(maker.cursor1.y-maker.cursor2.y) + 1) * tileSize
+
+        --print("x: ".. maker.current.x .. ' y: '.. maker.current.y .. " w: "..maker.current.w.. ' h: '..maker.current.h)
 
 
     end
 
-    for key, value in pairs(collectObjects) do    
-        if doesCollideRect(player, value) then
-            score = score + 1
-            table.insert(collectedObjects, value.id, value.id)
-            table.remove(collectObjects, key)
-        end
-
-    end
-
-    if canLand then
-        player.onGround = true
-    else
-        player.onGround = false
-    end
-
-    player.xPos = player.xPos + player.deltaX
-    player.yPos = player.yPos + player.deltaY
-
-
-    -- ~ level swap / screen wrap ~
-    if player.yPos > screenHeight and player.deltaY > 0 then
-        if player.boundary.down == 0 then
-
-        elseif player.boundary.down == 1 then
-            --insert player death here, make death function and some graphical effects
-            player.xPos = player.respawn.x
-            player.yPos = player.respawn.y
-        elseif player.boundary.down == 2 then    
-            level.y = level.y - 1
-            loadLevel(level)
-            player.yPos = -player.height
-        end
-
-    end
-    if player.xPos > screenWidth and player.deltaX > 0 then
-        if player.boundary.right == 0 then
-
-        elseif player.boundary.right == 1 then
-            --insert player death here, make death function and some graphical effects
-            player.xPos = player.respawn.x
-            player.yPos = player.respawn.y
-        elseif player.boundary.right == 2 then    
-            level.x = level.x + 1
-            loadLevel(level)
-            player.xPos = -player.width
-        end
-
-    end
-
-    if player.yPos + player.height < 0 and player.deltaY < 0 then
-        if player.boundary.up == 0 then
-
-        elseif player.boundary.up == 1 then
-            --insert player death here, make death function and some graphical effects
-            player.xPos = player.respawn.x
-            player.yPos = player.respawn.y
-        elseif player.boundary.up == 2 then    
-            level.y = level.y + 1
-            loadLevel(level)
-        player.yPos = screenHeight
-        end
-
-    end
-    if player.xPos + player.width < 0 and player.deltaX < 0 then
-        if player.boundary.left == 0 then
-
-        elseif player.boundary.left == 1 then
-            --insert player death here, make death function and some graphical effects
-            player.xPos = player.respawn.x
-            player.yPos = player.respawn.y
-        elseif player.boundary.left == 2 then    
-            level.x = level.x - 1
-            loadLevel(level)
-            player.xPos = screenWidth
-        end
 
 
 
-    end
-
-    -- ~ Debug Print Statements ~
-    --print('player.deltaY: ' .. player.deltaY)
 end
 
 function love.draw()
@@ -619,8 +670,33 @@ function love.draw()
     love.graphics.setColor(0.9, 0.7, 0.9, 0.9)
     love.graphics.print('Trash Collected: '.. tostring(score), 800, 100)
 
+    --debug woooo
+    if debug == 1 then
+        love.graphics.setColor(0.5, 0.1, 0.1, 0.8)
+        love.graphics.rectangle("fill", maker.cursor1.x*tileSize, maker.cursor1.y*tileSize, tileSize, tileSize)
+        love.graphics.setColor(0.1, 0.1, 0.5, 0.8)
+        love.graphics.rectangle("fill", maker.cursor2.x*tileSize, maker.cursor2.y*tileSize, tileSize, tileSize)
+        love.graphics.setColor(0.1, 0.5, 0.1, 0.8)
+        love.graphics.rectangle("line", maker.pointer.x*tileSize, maker.pointer.y*tileSize, tileSize, tileSize)
+
+        love.graphics.setColor(0.3, 0.3, 0.3, 0.4)
+        love.graphics.rectangle("fill", maker.current.x, maker.current.y, maker.current.w, maker.current.h)
+
+    end
 end
 
+--only for level making in debug=1
+function objectPlace(type)
+    if type == 'wall' then
+        table.insert(maker.export, 'makeWallRect{xPos='..maker.current.x..',yPos='..maker.current.y..',width='..maker.current.w..',height='..maker.current.h..'}')
+        makeWallRect{xPos=maker.current.x,yPos=maker.current.y,width=maker.current.w,height=maker.current.h}
+        print('makeWallRect{xPos='..maker.current.x..',yPos='..maker.current.y..',width='..maker.current.w..',height='..maker.current.h..'}')
+    elseif type == 'collectable' then
+        table.insert(maker.export, 'makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..'}')
+        makeCollectable{xPos=maker.pointer.x*tileSize,yPos=maker.pointer.y*tileSize,width=tileSize,height=tileSize}
+        print('makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..'}')
+    end
+end
 
 function love.mousepressed(x, y, button, istouch)
   --[[if button == 1 then
@@ -628,11 +704,27 @@ function love.mousepressed(x, y, button, istouch)
       imgy = y
    end
    --]]
-    makeWallRect{xPos=x,yPos=y,width=25,height=25}
     print('x is ' .. x .. ', y is ' .. y)
+    if debug == 0 then
+        makeWallRect{xPos=x,yPos=y,width=tileSize,height=tileSize}
+
+    elseif debug == 1 then
+        xPosTile = (x - (x % tileSize)) / tileSize
+        yPosTile = (y - (y % tileSize)) / tileSize
+        print('xPosTile is ' .. xPosTile .. ', yPosTile is ' .. yPosTile)
+        if button == 1 then
+            maker.cursor1 = {x=xPosTile,y=yPosTile}
+            maker.pointer.drag = true
+        elseif button == 2 then
+            objectPlace('collectable')
+        end
+    end
 end
 
 function love.mousereleased(x, y, button, istouch)
+    if debug == 1 then
+        maker.pointer.drag = false
+    end
    --[[if button == 1 then
       imgx = x -- move image to where mouse clicked
       imgy = y
@@ -657,6 +749,28 @@ function love.keypressed(key)
         player.loop = not player.loop
     end
 
+    if debug == 1 then
+        if key == 'right' then
+            level.x = level.x + 1
+            loadLevel(level)
+        end
+        if key == 'left' then
+            level.x = level.x - 1
+            loadLevel(level)
+        end
+        if key == 'up' then
+            level.y = level.y + 1
+            loadLevel(level)
+        end
+        if key == 'down' then
+            level.y = level.y - 1
+            loadLevel(level)
+        end
+--            makeWallRect{xPos=0,yPos=-wallBuffer,width=screenWidth,height=wallBuffer,visible=false}
+        if key == 'space' then
+            objectPlace('wall')
+        end
+    end
 
 
 end
@@ -672,15 +786,31 @@ function love.keyreleased(key)
 end
 
 function love.focus(f)
-  if not f then
-    print("LOST FOCUS")
-  else
-    print("GAINED FOCUS")
-  end
+    --[[
+      if not f then
+        print("LOST FOCUS")
+      else
+        print("GAINED FOCUS")
+      end
+    --]]
 end
 
 function love.quit()
-  print("Thanks for playing gamers! See ya!")
+    if debug == 1 then
+        local tempValue = ""
+        for key, value in ipairs(maker.export) do  
+            tempValue = tempValue .. value .. '\n'
+        end  
+        love.system.setClipboardText(tempValue)
+    end
+
+    print("Thanks for playing gamers! See ya!")
+    --[[file = love.filesystem.newFile("export.txt")
+        file:open("w")
+        for key, value in ipairs(maker.export) do
+            file:write(value)
+        end
+        file:close()--]]
 end
 
 
