@@ -29,7 +29,7 @@ function love.load()
     --generic number, needs deltaTime to work properly
     timeToApex = 60
 
-    debug = 1
+    debug = 0
     maker = {}
 
     if debug == 1 then
@@ -38,6 +38,8 @@ function love.load()
         maker.pointer = {x=20,y=5,drag=false}
         maker.current = {}
         maker.export = {}
+        maker.menu = 0
+        tempID = ''
     end
 
 
@@ -151,38 +153,50 @@ function love.load()
         collectObjects = {}
         -- ~ Level Data ~
         if levelNum.y == 1 then
+            --[[
+                if levelNum.x == 1 then
+                    wallBlock{up=true,left=true}
+                    makeWallRect{xPos=-50,yPos=400,width=screenWidth + 100,height=300}
+                    makeCollectable{xPos=screenWidth/2,yPos=screenHeight/2,id=1}
+                    player.respawn = {x=screenWidth/2,y=400}
+                    player.boundary = {up=0,down=1,left=1,right=2}
+                elseif levelNum.x == 2 then
+                    --love.graphics.print('Hold against the wall to wall jump after pressing Z', 500, 100)
+                    makeWallRect{xPos=-50,yPos=400,width=50,height=300}
+                    makeWallRect{xPos=0,yPos=500, width = screenWidth/2,height = 200}
+                    makeWallRect{xPos=screenWidth*2/3,yPos=200, width = screenWidth/3,height = 400}
+                    makeCollectable{xPos=screenWidth*2/3-20,yPos=screenHeight-25,id=2}
+                    player.boundary = {up=0,down=1,left=2,right=2}
+                    player.respawn = {x=100,y=450}
+                elseif levelNum.x == 3 then
+                    makeWallRect{xPos=0,yPos=200,height=500,width=100}
+                    makeWallRect{xPos=250,yPos=0,height=300,width=100}
+                    makeWallRect{xPos=500,yPos=300,height=500,width=100}
+                    makeWallRect{xPos=600,yPos=500,height=100,width=500}
+                    makeCollectable{xPos=325,yPos=315,id=3}
+                    player.boundary = {up=0,down=1,left=2,right=2}
+                    player.respawn = {x=50,y=150}
+                elseif levelNum.x == 4 then
+                elseif levelNum.x == 5 then
+                    makeWallRect{xPos=-50,yPos=400,width=200,height=300}
+                    makeWallRect{xPos=500,yPos=300,width=350,height= 100}
+                    makeCollectable{xPos=500,yPos=200,id=2}
+
+                elseif levelNum.x == 6 then
+
+                elseif levelNum.x == 7 then
+                elseif levelNum.x == 8 then
+                --]]
+
             if levelNum.x == 1 then
                 wallBlock{up=true,left=true}
-                makeWallRect{xPos=-50,yPos=400,width=screenWidth + 100,height=300}
-                makeCollectable{xPos=screenWidth/2,yPos=screenHeight/2,id=1}
-                player.respawn = {x=screenWidth/2,y=400}
-                player.boundary = {up=0,down=1,left=1,right=2}
-            elseif levelNum.x == 2 then
-                --love.graphics.print('Hold against the wall to wall jump after pressing Z', 500, 100)
-                makeWallRect{xPos=-50,yPos=400,width=50,height=300}
-                makeWallRect{xPos=0,yPos=500, width = screenWidth/2,height = 200}
-                makeWallRect{xPos=screenWidth*2/3,yPos=200, width = screenWidth/3,height = 400}
-                makeCollectable{xPos=screenWidth*2/3-20,yPos=screenHeight-25,id=2}
-                player.boundary = {up=0,down=1,left=2,right=2}
-                player.respawn = {x=100,y=450}
-            elseif levelNum.x == 3 then
-                makeWallRect{xPos=0,yPos=200,height=500,width=100}
-                makeWallRect{xPos=250,yPos=0,height=300,width=100}
-                makeWallRect{xPos=500,yPos=300,height=500,width=100}
-                makeWallRect{xPos=600,yPos=500,height=100,width=500}
-                makeCollectable{xPos=325,yPos=315,id=3}
-                player.boundary = {up=0,down=1,left=2,right=2}
-                player.respawn = {x=50,y=150}
-            elseif levelNum.x == 4 then
-            elseif levelNum.x == 5 then
-                makeWallRect{xPos=-50,yPos=400,width=200,height=300}
-                makeWallRect{xPos=500,yPos=300,width=350,height= 100}
-                makeCollectable{xPos=500,yPos=200,id=2}
-                player.respawn = {x=50,y=375}
-                player.boundary = {up=0,down=1,left=2,right=2}
-            elseif levelNum.x == 6 then
-            elseif levelNum.x == 7 then
-            elseif levelNum.x == 8 then
+                makeWallRect{xPos=0,yPos=350,width=100,height=100}
+                makeWallRect{xPos=200,yPos=75,width=50,height=300}
+                makeWallRect{xPos=300,yPos=400,width=100,height=25}
+                makeWallRect{xPos=650,yPos=275,width=100,height=50}
+                makeCollectable{xPos=475,yPos=175,width=25,height=25,id=1}
+                player.respawn = {x=50,y=200}
+                player.boundary = {up=0,down=1,left=0,right=2}
             else
                 player.xPos = player.respawn.x
                 player.yPos = player.respawn.y
@@ -282,6 +296,8 @@ function love.load()
 
     if debug == 0 then
         loadLevel(level)
+        player.xPos = player.respawn.x
+        player.yPos = player.respawn.y
     end
 end
 
@@ -626,6 +642,14 @@ function love.update(dTime)
 
 end
 
+function love.textinput(t)
+    if debug == 1 then
+        if #tostring(tempID) < 5 then
+        tempID = tostring(tempID) .. t
+        end
+    end
+end
+
 function love.draw()
    --[[
    love.graphics.draw(image, imgx, imgy)
@@ -682,6 +706,11 @@ function love.draw()
         love.graphics.setColor(0.3, 0.3, 0.3, 0.4)
         love.graphics.rectangle("fill", maker.current.x, maker.current.y, maker.current.w, maker.current.h)
 
+        love.graphics.setColor(0, 0.8, 0.3, 0.8)
+        love.graphics.print('Trash ID: '.. tostring(tempID),28*tileSize,1*tileSize)
+
+        love.graphics.setColor(0.8, 0.8, 0.8, 0.8)
+        love.graphics.print('Menu: '.. tostring(maker.menu),28*tileSize,2*tileSize)
     end
 end
 
@@ -691,12 +720,20 @@ function objectPlace(type)
         table.insert(maker.export, 'makeWallRect{xPos='..maker.current.x..',yPos='..maker.current.y..',width='..maker.current.w..',height='..maker.current.h..'}')
         makeWallRect{xPos=maker.current.x,yPos=maker.current.y,width=maker.current.w,height=maker.current.h}
         print('makeWallRect{xPos='..maker.current.x..',yPos='..maker.current.y..',width='..maker.current.w..',height='..maker.current.h..'}')
+    
     elseif type == 'collectable' then
-        table.insert(maker.export, 'makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..'}')
-        makeCollectable{xPos=maker.pointer.x*tileSize,yPos=maker.pointer.y*tileSize,width=tileSize,height=tileSize}
-        print('makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..'}')
+        if tonumber(tempID) ~= nil then
+            table.insert(maker.export, 'makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..',id='..tonumber(tempID)..'}')
+            makeCollectable{xPos=maker.pointer.x*tileSize,yPos=maker.pointer.y*tileSize,width=tileSize,height=tileSize,id=tonumber(tempID)}
+            print('makeCollectable{xPos='..maker.pointer.x*tileSize..',yPos='..maker.pointer.y*tileSize..',width='..tileSize..',height='..tileSize..',id='..tonumber(tempID)..'}')
+            tempID = 'Success!'
+        else
+            tempID = 'Failed...'
+        end
     end
 end
+
+
 
 function love.mousepressed(x, y, button, istouch)
   --[[if button == 1 then
@@ -770,6 +807,14 @@ function love.keypressed(key)
         if key == 'space' then
             objectPlace('wall')
         end
+
+        if key == "backspace" then
+
+            tempID = tempID:sub(1, #tempID - 1)
+
+        end
+
+
     end
 
 
