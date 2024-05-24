@@ -31,5 +31,6 @@ end
 function love.graphics.draw()
 	love.graphics.setColor(0.8, 0.2, 0.8, 1)
 	love.graphics.Rectangle(player.xPos,player.yPos,player.width,player,height)
+	love.graphics.Rectangle(winX/2,winY/2,500,500)
 
 end
