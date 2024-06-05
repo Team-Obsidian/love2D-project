@@ -5,6 +5,9 @@ io.stdout:setvbuf("no")
 
 
 function love.load()
+    require('modules/collision')
+    require('modules/gravity')
+
 	winX = 320
 	winY = 180
 	renderScale = 5
@@ -15,8 +18,8 @@ function love.load()
 
 	function newAnimation(image, width, height, duration)
 	    local animation = {}
-	    animation.spriteSheet = image;
-	    animation.quads = {};
+	    animation.spriteSheet = image
+	    animation.quads = {}
 
 	    for y = 0, image:getHeight() - height, height do
 	        for x = 0, image:getWidth() - width, width do
@@ -30,8 +33,8 @@ function love.load()
 	    return animation
 	end
 
-	walking = newAnimation(love.graphics.newImage('walk.png'),12,16)
-    stand = love.graphics.newImage('stand.png')
+	walking = newAnimation(love.graphics.newImage('img/walk.png'),12,16)
+    stand = love.graphics.newImage('img/stand.png')
 
 
 
@@ -80,9 +83,9 @@ function love.load()
         temp.boundBehavior = q.boundsBehavior or {left=0,right=0,top=0,bottom=0}
         --0 for hit wall, 1 for pass, 2 for death plane
     end
-    
+
 	player = genPlayer{}
-    loadedObjects = {genRect{}}
+    loadedObjects = {genRect{yPos=winY,xPos=0,width=winX}}
 end
 
     
@@ -123,6 +126,7 @@ function love.draw()
 
 
     love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle('line', player.xPos, player.yPos, player.width, player.height)
 	if player.grounded == true and math.abs(player.deltaX) >= 0.1 then
 
 
@@ -145,7 +149,7 @@ function love.draw()
 end
 
 function love.update(dTime)
-
+    print('player.yPos: ' .. tostring(player.yPos))
 --[[
 	animation.currentTime = animation.currentTime + dTime
 	if animation.currentTime >= animation.duration then
@@ -198,6 +202,10 @@ function love.update(dTime)
     	end
     end
 
+    if love.keyboard.isDown('z') and player.grounded then
+        player.grounded = false
+        player.deltaY = -falling().jumpSpeed*dTime - 20
+    end
 
 --[[
 
@@ -229,6 +237,8 @@ function love.update(dTime)
     end
 --]]
 
+    --player.deltaY
+
 
 
     if math.abs(player.deltaX) > maxVelocity then
@@ -238,19 +248,42 @@ function love.update(dTime)
 
         --might want to adjust player.facing, need to preserve direction of deltaX somehow
     end
+
+    --[[ Gravity needs to happen, no terminal velocity yet
     if math.abs(player.deltaY) > maxVelocity then
         local sign = 0
         if player.deltaY > 0 then sign = 1 elseif player.deltaY < 0 then sign = -1 end
         player.deltaY = maxVelocity * sign
     end
+    --]]
+
+    --Gravity happens here, grounded
+    for i, rect in pairs(loadedObjects) do
+        if willCollide(player, rect).bottom then
+            player.yPos = rect.yPos - player.height
+            player.deltaY = 0
+            player.grounded = true        
+        end
+    end
+    if player.grounded == false then
+        player.deltaY = falling().gravity*dTime + player.deltaY
+    end
 
     player.yPos = player.deltaY + player.yPos
     player.xPos = player.deltaX + player.xPos
+
+
 
 end
 
 function love.keypressed(key)
     if key == 'space' then
-        print('player.xPos: '..tostring(player.xPos).. ' player.yPos: '..tostring(player.yPos))
+
+        for i, rect in pairs(loadedObjects) do
+            print()
+            for key, value in pairs(willCollide(player,rect)) do
+                print(tostring(key) .. ': '.. tostring(value))
+            end
+        end
     end
 end
