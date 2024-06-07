@@ -10,7 +10,7 @@ function isInside(obj1,obj2)
 end
 
 function willCollide(object1, object2)
-	print('object1.deltaY is: ' .. tostring(object1.deltaY))
+	--print('object1.deltaY is: ' .. tostring(object1.deltaY))
 	local collides = {}
 	    --print('start of doesCollideRect: '.. testVarNum)
 	    --testVarNum = testVarNum + 1

@@ -11,6 +11,8 @@ function love.load()
 	winX = 320
 	winY = 180
 	renderScale = 5
+    --auto, static, manual
+    camera = {mode='auto',offY=0,offX=0,speed=100}
 	love.graphics.setDefaultFilter('linear','nearest',1)
 	love.window.setMode(winX*renderScale,renderScale*winY)
 
@@ -85,7 +87,34 @@ function love.load()
     end
 
 	player = genPlayer{}
-    loadedObjects = {genRect{yPos=winY,xPos=0,width=winX}}
+    loadedObjects = {genRect{yPos=200,xPos=0,width=2*winX},genRect{yPos=-200,xPos=0,width=2*winX}}
+
+    --from all rectangles, finds the minX, minY, maxX, maxY and returns it
+    function cameraBounds()
+        local minX = {}
+        local minY = {}
+        local maxX = {}
+        local maxY = {}
+
+        local output = {}
+
+        for i, rect in pairs(loadedObjects) do
+            table.insert(minX, rect.xPos)
+            table.insert(minY, rect.yPos)
+            table.insert(maxX, rect.xPos + rect.width)
+            table.insert(maxY, rect.yPos + rect.height)
+        end
+
+        output = {}
+        output.minX = math.min(unpack(minX))
+        output.maxX = math.max(unpack(maxX))
+        output.minY = math.min(unpack(minY))
+        output.maxY = math.max(unpack(maxY))
+
+        return output
+
+    end
+    camera.bounds = cameraBounds()
 end
 
     
@@ -95,7 +124,30 @@ end
 function love.draw()
 	love.graphics.push()
 	love.graphics.scale(renderScale,renderScale)
-    love.graphics.translate(-player.xPos + winX/2, -player.yPos + winY/2)
+
+    if camera.mode == 'auto' then
+        local cameraOffY = 0
+        print('bounds: '.. tostring(camera.bounds.maxY))
+        print('player: ' .. tostring(player.yPos - winY/2))
+        if player.yPos + winY/2 > camera.bounds.maxY then
+            cameraOffY = -camera.bounds.maxY + winY
+        elseif player.yPos - winY/2 < camera.bounds.minY then
+            cameraOffY = -camera.bounds.minY 
+        else
+            --print('okay')
+            cameraOffY = -player.yPos + winY/2
+        end
+
+
+        --love.graphics.translate(-player.xPos + winX/2, 0)
+        love.graphics.translate(-player.xPos + winX/2, cameraOffY)
+
+
+    elseif camera.mode == 'manual' or camera.mode == 'static' then
+        love.graphics.translate(camera.offX, camera.offY)
+    end
+
+
 
     for i, rect in pairs(loadedObjects) do
         love.graphics.setColor(0.5, 0.2, 0.8, 1)
@@ -149,7 +201,7 @@ function love.draw()
 end
 
 function love.update(dTime)
-    print('player.yPos: ' .. tostring(player.yPos))
+    --print('player.yPos: ' .. tostring(player.yPos))
 --[[
 	animation.currentTime = animation.currentTime + dTime
 	if animation.currentTime >= animation.duration then
@@ -173,7 +225,7 @@ function love.update(dTime)
 
     if math.abs(player.deltaY) >= 0.1 then
         --player.deltaX = player.deltaX*0.80
-        player.deltaY = player.deltaY*0.80
+        --player.deltaY = player.deltaY*0.80
     else
         player.deltaY = 0
     end
@@ -204,8 +256,35 @@ function love.update(dTime)
 
     if love.keyboard.isDown('z') and player.grounded then
         player.grounded = false
-        player.deltaY = -falling().jumpSpeed*dTime - 20
+        player.deltaY = -falling().jumpSpeed*dTime
     end
+
+
+    --camera controls
+    if love.keyboard.isDown('w') then
+        if camera.mode == 'manual' then
+            camera.offY = camera.offY + camera.speed*dTime
+        end
+    end
+
+    if love.keyboard.isDown('a') then
+        if camera.mode == 'manual' then
+            camera.offX = camera.offX + camera.speed*dTime
+        end
+    end
+
+    if love.keyboard.isDown('s') then
+        if camera.mode == 'manual' then
+            camera.offY = camera.offY - camera.speed*dTime
+        end
+    end
+
+    if love.keyboard.isDown('d') then
+        if camera.mode == 'manual' then
+            camera.offX = camera.offX - camera.speed*dTime
+        end
+    end
+
 
 --[[
 
