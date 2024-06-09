@@ -9,18 +9,19 @@ function falling()
 	return temp
 end
 --]]
-
+gravity = 4
+jumpSpeed = 3
+shortJump = false
 --temporary solution time!
-function falling()
-	local temp = {}
+function checkGravity()
+	print('shortJump: '..tostring(shortJump))
 	--really bad and randomly made but hey,
 	--kinda works
-	if player.deltaY < -2 then
-		temp.gravity = 20
+	if player.deltaY > 0 then
+		gravity = 6
+	elseif shortJump and player.deltaY < 0 then
+		gravity = 12
 	else
-		temp.gravity = 5
+		gravity = 4
 	end
-
-	temp.jumpSpeed = 300
-	return temp
 end

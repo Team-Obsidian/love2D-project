@@ -52,7 +52,7 @@ function love.load()
 
 
 
-	maxVelocity = 2        --player.deltaX = player.deltaX*0.80
+	maxVelocity = 2        
 
 
 	function genPlayer(q)
@@ -75,6 +75,7 @@ function love.load()
         temp.facing = q.facing or 1
 
         temp.canJump = q.canJump or true
+        temp.isJumping = q.isJumping or false
 
         return temp
 	end
@@ -287,7 +288,9 @@ function love.update(dTime)
         if love.keyboard.isDown('z') and player.grounded and player.canJump then
             player.grounded = false
             player.canJump = false
-            player.deltaY = -falling().jumpSpeed*dTime
+            shortJump = false
+            player.isJumping = true
+            player.deltaY = -jumpSpeed
         end
 
 
@@ -307,12 +310,14 @@ function love.update(dTime)
         end
         --]]
 
-        --standing on the ground
+        --standing on the ground / land
         for i, rect in pairs(rectObjects) do
             if willCollide(player, rect).bottom then
                 player.yPos = rect.yPos - player.height
                 player.deltaY = 0
-                player.grounded = true        
+                player.grounded = true
+                player.isJumping = false
+                shortJump = false      
             end
         end
 
@@ -321,12 +326,14 @@ function love.update(dTime)
             if willCollide(player,rect).top then
                 player.yPos = rect.yPos + rect.height
                 player.deltaY = 0
+                shortJump = true
             end
         end
 
         --Gravity happens here, grounded
         if player.grounded == false then
-            player.deltaY = falling().gravity*dTime + player.deltaY
+            checkGravity()
+            player.deltaY = gravity*dTime + player.deltaY
         end
 
         if player.deltaY > 5*maxVelocity then player.deltaY = 5*maxVelocity end
@@ -377,6 +384,11 @@ function love.update(dTime)
     if love.keyboard.isDown('lshift') then
         camera.speed = 200
     end
+
+    if player.deltaX ~= 0 then
+        --player.deltaX = player.deltaX*0.80
+        player.deltaX = player.deltaX*0.80
+    end
 --[[
 
 
@@ -388,10 +400,7 @@ function love.update(dTime)
     player.xPos = player.xPos + player.deltaX
     player.yPos = player.yPos + player.deltaY
 
-    if player.deltaX ~= 0 then
-        --player.deltaX = player.deltaX*0.80
-        player.deltaX = player.deltaX*0.80
-    end
+
 
     if math.abs(player.deltaX) < 1 then
     	player.deltaX = math.floor(player.deltaX)
@@ -433,6 +442,13 @@ end
 function love.keyreleased(key)
     if key == 'z' then
         player.canJump = true
+        if player.isJumping then
+            shortJump = true
+        end
+        --very sloppy but hey, works
+        
+
+
     end
 
 
