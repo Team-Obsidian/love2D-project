@@ -7,12 +7,19 @@ io.stdout:setvbuf("no")
 function love.load()
     require('modules/collision')
     require('modules/gravity')
+    require('modules/make')
+    require('modules/camera')
+
+    --debug: play, make, view
+    settings = {debug='play'}
 
 	winX = 320
 	winY = 180
 	renderScale = 5
+    zoom = 1
     --auto, static, manual
-    camera = {mode='auto',offY=0,offX=0,speed=100}
+
+
 	love.graphics.setDefaultFilter('linear','nearest',1)
 	love.window.setMode(winX*renderScale,renderScale*winY)
 
@@ -51,17 +58,20 @@ function love.load()
 
 		temp.xPos = q.xPos or winX/2
 		temp.yPos = q.yPos or winY/2
+        temp.speed = q.speed or 30
+
+
+
 		temp.width = q.width or 12
 		temp.height = q.height or 16
 
-		temp.speed = q.speed or 30
-
 		temp.grounded = true
-
 		temp.deltaX = q.deltaX or 0
 		temp.deltaY = q.deltaY or 0
 
         temp.facing = q.facing or 1
+
+        temp.canJump = q.canJump or true
 
         return temp
 	end
@@ -87,34 +97,11 @@ function love.load()
     end
 
 	player = genPlayer{}
-    loadedObjects = {genRect{yPos=200,xPos=0,width=2*winX},genRect{yPos=-200,xPos=0,width=2*winX}}
-
+    rectObjects = {genRect{yPos=200,xPos=0,width=2*winX},genRect{yPos=-200,xPos=0,width=2*winX}}
+    camera.bounds = cameraBounds(rectObjects)
     --from all rectangles, finds the minX, minY, maxX, maxY and returns it
-    function cameraBounds()
-        local minX = {}
-        local minY = {}
-        local maxX = {}
-        local maxY = {}
 
-        local output = {}
 
-        for i, rect in pairs(loadedObjects) do
-            table.insert(minX, rect.xPos)
-            table.insert(minY, rect.yPos)
-            table.insert(maxX, rect.xPos + rect.width)
-            table.insert(maxY, rect.yPos + rect.height)
-        end
-
-        output = {}
-        output.minX = math.min(unpack(minX))
-        output.maxX = math.max(unpack(maxX))
-        output.minY = math.min(unpack(minY))
-        output.maxY = math.max(unpack(maxY))
-
-        return output
-
-    end
-    camera.bounds = cameraBounds()
 end
 
     
@@ -122,34 +109,28 @@ end
 
 
 function love.draw()
+    --print(love.mouse.getX())
 	love.graphics.push()
-	love.graphics.scale(renderScale,renderScale)
-
-    if camera.mode == 'auto' then
-        local cameraOffY = 0
-        print('bounds: '.. tostring(camera.bounds.maxY))
-        print('player: ' .. tostring(player.yPos - winY/2))
-        if player.yPos + winY/2 > camera.bounds.maxY then
-            cameraOffY = -camera.bounds.maxY + winY
-        elseif player.yPos - winY/2 < camera.bounds.minY then
-            cameraOffY = -camera.bounds.minY 
-        else
-            --print('okay')
-            cameraOffY = -player.yPos + winY/2
-        end
-
-
-        --love.graphics.translate(-player.xPos + winX/2, 0)
-        love.graphics.translate(-player.xPos + winX/2, cameraOffY)
-
-
-    elseif camera.mode == 'manual' or camera.mode == 'static' then
-        love.graphics.translate(camera.offX, camera.offY)
-    end
 
 
 
-    for i, rect in pairs(loadedObjects) do
+
+
+	love.graphics.scale(renderScale*zoom,renderScale*zoom)
+
+
+
+    drawGrid()
+    --draw direct on screen
+
+    --find and render cursor
+
+
+
+
+    --draw with camera
+    cameraTranslate()
+    for i, rect in pairs(rectObjects) do
         love.graphics.setColor(0.5, 0.2, 0.8, 1)
         love.graphics.rectangle('fill', rect.xPos, rect.yPos, rect.width, rect.height)
     end
@@ -196,8 +177,42 @@ function love.draw()
 	
 
 
-	love.graphics.pop()
 
+
+
+    if settings.debug == 'make' then
+
+        love.graphics.setColor(0.4,0.2,0.2,0.4)
+        love.graphics.rectangle('fill', 
+            math.min(selected.lastX, selected.xPos), 
+            math.min(selected.lastY, selected.yPos), 
+            math.abs(selected.xPos-selected.lastX)+tileSize, 
+            math.abs(selected.yPos-selected.lastY)+tileSize
+            --remember to always add back in the tile in calculations
+            )
+        love.graphics.setColor(0.8,0.2,0.2,0.8)
+        love.graphics.rectangle('line', 
+            math.min(selected.lastX, selected.xPos), 
+            math.min(selected.lastY, selected.yPos), 
+            math.abs(selected.xPos-selected.lastX)+tileSize, 
+            math.abs(selected.yPos-selected.lastY)+tileSize
+            --remember to always add back in the tile in calculations
+            )
+
+        --draw debug cursor
+        love.graphics.setColor(0.8, 0.3, 0.3, 0.8)
+        love.graphics.rectangle('fill', selected.xPos, selected.yPos, tileSize, tileSize)
+        love.graphics.setColor(0.3, 0.3, 0.8, 0.8)
+        love.graphics.rectangle('fill', selected.lastX, selected.lastY, tileSize, tileSize)
+
+        love.graphics.setColor(0.3, 0.8, 0.3, 0.8)
+        love.graphics.rectangle('line', cursor.xPos, cursor.yPos, tileSize, tileSize)
+
+
+
+    end
+
+    love.graphics.pop()
 end
 
 function love.update(dTime)
@@ -209,55 +224,116 @@ function love.update(dTime)
 	end
 --]]
     --print(player.grounded)
-	if player.grounded and math.abs(player.deltaX) >= 0.5 then
-		walking.currentTime = walking.currentTime + dTime
-		if walking.currentTime >= walking.duration then
-			walking.currentTime = walking.currentTime - walking.duration
-		end
-	end
 
-    if math.abs(player.deltaX) >= 0.1 then
-        --player.deltaX = player.deltaX*0.80
-        player.deltaX = player.deltaX*0.80
-    else
-        player.deltaX = 0
-    end
-
-    if math.abs(player.deltaY) >= 0.1 then
-        --player.deltaX = player.deltaX*0.80
-        --player.deltaY = player.deltaY*0.80
-    else
-        player.deltaY = 0
-    end
-
-    if love.keyboard.isDown('left') then
-    	if player.deltaX > -maxVelocity then
-        	player.deltaX = player.deltaX - player.speed*dTime
+    if settings.debug == 'play' then
+    	if player.grounded and math.abs(player.deltaX) >= 0.5 then
+    		walking.currentTime = walking.currentTime + dTime
+    		if walking.currentTime >= walking.duration then
+    			walking.currentTime = walking.currentTime - walking.duration
+    		end
     	end
+
+        if math.abs(player.deltaX) >= 0.1 then
+            --player.deltaX = player.deltaX*0.80
+            player.deltaX = player.deltaX*0.80
+        else
+            player.deltaX = 0
+        end
+
+        if math.abs(player.deltaY) >= 0.1 then
+            --player.deltaX = player.deltaX*0.80
+            --player.deltaY = player.deltaY*0.80
+        else
+            player.deltaY = 0
+        end
+
+        if love.keyboard.isDown('left') then
+        	if player.deltaX > -maxVelocity then
+            	player.deltaX = player.deltaX - player.speed*dTime
+        	end
+        end
+
+        if love.keyboard.isDown('right') then
+        	if player.deltaX < maxVelocity then
+            	player.deltaX = player.deltaX + player.speed*dTime
+        	end
+        end
+
+        if love.keyboard.isDown('up') then
+        	if player.deltaY > -maxVelocity then
+            	player.deltaY = player.deltaY - player.speed*dTime
+        	end
+        end
+
+        if love.keyboard.isDown('down') then
+        	if player.deltaY < maxVelocity then
+            	player.deltaY = player.deltaY + player.speed*dTime
+        	end
+        end
+
+        if love.keyboard.isDown('z') and player.grounded and player.canJump then
+            player.grounded = false
+            player.canJump = false
+            player.deltaY = -falling().jumpSpeed*dTime
+        end
+
+
+        if math.abs(player.deltaX) > maxVelocity then
+            local sign = 0
+            if player.deltaX > 0 then sign = 1 elseif player.deltaX < 0 then sign = -1 end
+            player.deltaX = maxVelocity * sign
+
+            --might want to adjust player.facing, need to preserve direction of deltaX somehow
+        end
+
+        --[[ Gravity needs to happen, no terminal velocity yet
+        if math.abs(player.deltaY) > maxVelocity then
+            local sign = 0
+            if player.deltaY > 0 then sign = 1 elseif player.deltaY < 0 then sign = -1 end
+            player.deltaY = maxVelocity * sign
+        end
+        --]]
+
+        --standing on the ground
+        for i, rect in pairs(rectObjects) do
+            if willCollide(player, rect).bottom then
+                player.yPos = rect.yPos - player.height
+                player.deltaY = 0
+                player.grounded = true        
+            end
+        end
+
+        --Ceilings and bonked heads
+        for i, rect in pairs(rectObjects) do
+            if willCollide(player,rect).top then
+                player.yPos = rect.yPos + rect.height
+                player.deltaY = 0
+            end
+        end
+
+        --Gravity happens here, grounded
+        if player.grounded == false then
+            player.deltaY = falling().gravity*dTime + player.deltaY
+        end
+
+
+
+        player.yPos = player.deltaY + player.yPos
+        player.xPos = player.deltaX + player.xPos
     end
 
-    if love.keyboard.isDown('right') then
-    	if player.deltaX < maxVelocity then
-        	player.deltaX = player.deltaX + player.speed*dTime
-    	end
+    if settings.debug == 'make' then
+        findCursor()
+        if selected.dragging then
+            findSelect()
+        end
+
+
     end
 
-    if love.keyboard.isDown('up') then
-    	if player.deltaY > -maxVelocity then
-        	player.deltaY = player.deltaY - player.speed*dTime
-    	end
-    end
 
-    if love.keyboard.isDown('down') then
-    	if player.deltaY < maxVelocity then
-        	player.deltaY = player.deltaY + player.speed*dTime
-    	end
-    end
 
-    if love.keyboard.isDown('z') and player.grounded then
-        player.grounded = false
-        player.deltaY = -falling().jumpSpeed*dTime
-    end
+
 
 
     --camera controls
@@ -285,7 +361,9 @@ function love.update(dTime)
         end
     end
 
-
+    if love.keyboard.isDown('lshift') then
+        camera.speed = 200
+    end
 --[[
 
 
@@ -320,36 +398,6 @@ function love.update(dTime)
 
 
 
-    if math.abs(player.deltaX) > maxVelocity then
-        local sign = 0
-        if player.deltaX > 0 then sign = 1 elseif player.deltaX < 0 then sign = -1 end
-        player.deltaX = maxVelocity * sign
-
-        --might want to adjust player.facing, need to preserve direction of deltaX somehow
-    end
-
-    --[[ Gravity needs to happen, no terminal velocity yet
-    if math.abs(player.deltaY) > maxVelocity then
-        local sign = 0
-        if player.deltaY > 0 then sign = 1 elseif player.deltaY < 0 then sign = -1 end
-        player.deltaY = maxVelocity * sign
-    end
-    --]]
-
-    --Gravity happens here, grounded
-    for i, rect in pairs(loadedObjects) do
-        if willCollide(player, rect).bottom then
-            player.yPos = rect.yPos - player.height
-            player.deltaY = 0
-            player.grounded = true        
-        end
-    end
-    if player.grounded == false then
-        player.deltaY = falling().gravity*dTime + player.deltaY
-    end
-
-    player.yPos = player.deltaY + player.yPos
-    player.xPos = player.deltaX + player.xPos
 
 
 
@@ -357,12 +405,49 @@ end
 
 function love.keypressed(key)
     if key == 'space' then
+        --objectPlace('wall')
+        --printMaker()
+    end
 
-        for i, rect in pairs(loadedObjects) do
-            print()
-            for key, value in pairs(willCollide(player,rect)) do
-                print(tostring(key) .. ': '.. tostring(value))
-            end
-        end
+    if key == 'q' then
+        swapCamera()
+    end
+    if key == 'e' then
+        swapDebug()
+    end
+end
+
+function love.keyreleased(key)
+    if key == 'z' then
+        player.canJump = true
+    end
+
+
+    if key == 'p' then
+        zoom = zoom + 0.2
+    end
+    if key == 'o' then
+        zoom = zoom - 0.2
+    end
+
+    if key == 'lshift' then
+        camera.speed = 50
+    end
+
+end
+
+function love.mousepressed(x, y, button, istouch, presses)
+    if settings.debug == 'make' then
+        selected.lastX, selected.lastY = cursor.xPos, cursor.yPos
+        selected.dragging = true
+        --tileDrag(button)
+    end
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
+    if settings.debug == 'make' then
+        selected.dragging = false
+        --maker.pointer.drag = false
+        --print('tile undrag')
     end
 end
