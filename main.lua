@@ -42,8 +42,11 @@ function love.load()
 	    return animation
 	end
 
-	walking = newAnimation(love.graphics.newImage('img/walk.png'),12,16)
+	walking = newAnimation(love.graphics.newImage('img/walk2.png'),12,16)
     stand = love.graphics.newImage('img/stand.png')
+    airUp = love.graphics.newImage('img/airUp.png')
+    airFloat = love.graphics.newImage('img/airFloat.png')
+    airDown = love.graphics.newImage('img/airDown.png')
 
 
 
@@ -160,16 +163,23 @@ function love.draw()
 
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.rectangle('line', player.xPos, player.yPos, player.width, player.height)
-	if player.grounded == true and math.abs(player.deltaX) >= 0.1 then
+	if player.grounded  and math.abs(player.deltaX) >= 0.1 then
 
 
 		love.graphics.draw(walking.spriteSheet, walking.quads[spriteNum], 
 			player.xPos, player.yPos, 0, horizScale, vertScale, horizOffset, vertOffset)
-    elseif player.grounded == true and math.abs(player.deltaX) < 0.1 then
+    elseif player.grounded  and math.abs(player.deltaX) < 0.1 then
 
 
         love.graphics.draw(stand,player.xPos,player.yPos,0,horizScale,vertScale,horizOffset,vertOffset)
-	end
+    elseif player.grounded == false and player.deltaY <= -0.1 then
+        love.graphics.draw(airUp,player.xPos,player.yPos,0,horizScale,vertScale,horizOffset,vertOffset)
+    elseif player.grounded == false and player.deltaY >= 1 then
+        love.graphics.draw(airDown,player.xPos,player.yPos,0,horizScale,vertScale,horizOffset,vertOffset)
+    else 
+        love.graphics.draw(airFloat,player.xPos,player.yPos,0,horizScale,vertScale,horizOffset,vertOffset)
+    end
+    print('player.deltaY: '..tostring(player.deltaY))
 
 
 
@@ -233,20 +243,23 @@ function love.update(dTime)
     		end
     	end
 
+--[[bad, need to make another system
         if math.abs(player.deltaX) >= 0.1 then
             --player.deltaX = player.deltaX*0.80
             player.deltaX = player.deltaX*0.80
         else
             player.deltaX = 0
         end
+]]
 
+--[[I don't know what I used this for, mess with my gravity
         if math.abs(player.deltaY) >= 0.1 then
             --player.deltaX = player.deltaX*0.80
             --player.deltaY = player.deltaY*0.80
         else
             player.deltaY = 0
         end
-
+--]]
         if love.keyboard.isDown('left') then
         	if player.deltaX > -maxVelocity then
             	player.deltaX = player.deltaX - player.speed*dTime
@@ -316,7 +329,7 @@ function love.update(dTime)
             player.deltaY = falling().gravity*dTime + player.deltaY
         end
 
-
+        if player.deltaY > 5*maxVelocity then player.deltaY = 5*maxVelocity end
 
         player.yPos = player.deltaY + player.yPos
         player.xPos = player.deltaX + player.xPos
